@@ -1,0 +1,37 @@
+CHIT 2 | 50% duty-cycle square wave                           [STM32F407]
+======================================================================
+
+Problem: Generate a 50% square wave on a GPIO, debug through SWD, verify GPIO
+registers, confirm on an oscilloscope.
+Code source: hehe.txt (Expt 1 part 2) + Drive 'mahi codes exp 2.docx' (PS 2)
+
+SETUP
+-----
+1. Same .ioc as Chit 1: PD12 = GPIO_Output.
+2. Wiring: PD12 and a GND pin of the STM32 -> female jumpers; male ends into the
+   breadboard, each in its own vertical row. Scope probe tip on the PD12 row,
+   probe ground clip on the GND row.
+
+CODE
+----
+while (1)
+{
+    HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12);   /* HIGH for 500 ms, LOW for 500 ms */
+    HAL_Delay(500);                           /* T = 1 s, f = 1 Hz, duty = 50 % */
+}
+/* For an easier-to-read scope trace use HAL_Delay(1): T = 2 ms, f = 500 Hz. */
+
+VERIFY
+------
+1. Run the code: LED blinks and the scope shows a square wave.
+2. Use the scope cursors for amplitude (about 3.3 V high, 0 V low) and for the
+   period/frequency.
+3. Duty cycle = T_high / T_total = 500 / 1000 = 50%.
+4. In the debugger, step over the toggle line and watch GPIOD ODR bit 12 flip
+   between 0x1000 and 0x0000.
+
+TIMER-BASED OPTION
+------------------
+TIM4 CH1 appears on PD12 (AF2). With HSI 16 MHz set PSC = 15999, ARR = 999,
+pulse = 500 for a 1 Hz 50% PWM, then HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1).
+Software toggling is enough for the chit.

@@ -1,0 +1,32 @@
+CHIT 7 | Automatic lighting with an LDR                       [STM32F407]
+======================================================================
+
+Problem: When ambient light falls below a threshold turn an LED ON; turn it OFF
+when light is sufficient.
+Code source: Drive exp 4/LDR without msg-correct.txt (digital) + LDR STM code.txt;
+ADC variant generated
+
+CUBEMX SETTINGS
+---------------
+1. PC5 = GPIO_Input (LDR module digital output DO). Output LED on PD12
+   (GPIO_Output, on-board LD4).
+2. Wire LDR module: VCC -> 3.3 V, GND -> GND, DO -> PC5. Turn the module's blue
+   potentiometer to set the dark/bright threshold.
+3. Ctrl+S, paste the loop into USER CODE BEGIN WHILE.
+
+CODE - DIGITAL OUTPUT (Drive version, marked 'correct')
+-------------------------------------------------------
+while (1)
+{
+    GPIO_PinState ldrState;
+
+    ldrState = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_5);        /* LDR DO on PC5 */
+
+    if (ldrState == GPIO_PIN_RESET)                        /* Dark   -> LED ON  */
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
+    else                                                   /* Bright -> LED OFF */
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
+
+    HAL_Delay(500);
+}
+

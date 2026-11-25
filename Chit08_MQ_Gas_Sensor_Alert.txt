@@ -1,0 +1,55 @@
+CHIT 8 | MQ gas / smoke sensor with alert                         [ESP32]
+======================================================================
+
+Problem: Interface an MQ-series gas sensor, monitor continuously, raise an alert
+when the level exceeds a threshold.
+Code source: Drive exp 4/Exp 4-c alcohol sens.txt (MQ-3)
+
+CONNECTIONS
+-----------
+MQ-3 module: VCC, GND, and the analog output (AO) to GPIO 4 (use the DHT port,
+analog pin only, per your note). Alert LED on-board at GPIO 37. Let the MQ
+sensor warm up for a minute or two before reading.
+
+STEPS
+-----
+1. Upload the sketch, open Serial Monitor at 115200.
+2. Note the baseline value in clean air, then bring alcohol (sanitiser) near;
+   the value rises.
+3. Adjust GAS_THRESHOLD (Drive used 3800 on the 12-bit 0-4095 scale) so the
+   alert triggers only on the real event.
+
+CODE
+----
+#define MQ3_AO_PIN 4
+#define LED_PIN    37
+
+const int GAS_THRESHOLD = 3800;      // 12-bit ADC: 0..4095
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, HIGH);       // on this board the LED is active-LOW: HIGH = off
+  analogReadResolution(12);
+  Serial.println("MQ-3 Sensor Test Started");
+}
+
+void loop() {
+  int sensorValue = analogRead(MQ3_AO_PIN);
+
+  Serial.print("MQ-3 Sensor Value: ");
+  Serial.println(sensorValue);
+
+  if (sensorValue >= GAS_THRESHOLD) {
+    digitalWrite(LED_PIN, LOW);      // LED ON = alert
+    Serial.println("ALERT: Threshold exceeded! LED ON");
+  } else {
+    digitalWrite(LED_PIN, HIGH);     // LED OFF
+  }
+  delay(500);
+}
+
+NOTE
+----
+The Drive file notes the LED logic is inverted (LOW turns it on). If your LED
+does the opposite, swap HIGH and LOW.

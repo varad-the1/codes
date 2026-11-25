@@ -1,0 +1,57 @@
+CHIT 10 | Ultrasonic sensor: object distance in cm                [ESP32]
+======================================================================
+
+Problem: Interface an ultrasonic sensor and determine the position of an object
+in centimetres.
+Code source: Drive Exp 5/EXP 5-b ULTRASONIC POSITIONSENSOR_ard.txt
+
+CONNECTIONS
+-----------
+HC-SR04: VCC, GND, TRIG -> GPIO 9, ECHO -> GPIO 8.
+Your note: attach the sensor directly to the 4-pin header on the board.
+
+WORKING PRINCIPLE (for viva)
+----------------------------
+A 10 us pulse on TRIG makes the sensor send 40 kHz bursts. ECHO stays HIGH for
+the round-trip time t. Distance = t x 0.0343 cm/us / 2 (speed of sound =
+343 m/s). Range is roughly 2-400 cm.
+
+CODE
+----
+const int trigPin = 9;
+const int echoPin = 8;
+
+long  duration;
+float distance;
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+}
+
+void loop() {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);           // 10 us trigger pulse
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  duration = pulseIn(echoPin, HIGH, 30000);   // 30 ms timeout
+
+  if (duration == 0) {
+    Serial.println("No distance detected");
+  } else {
+    distance = duration * 0.0343 / 2;         // cm
+    Serial.print("Distance: ");
+    Serial.print(distance);
+    Serial.println(" cm");
+  }
+  delay(500);
+}
+
+NOTE
+----
+An HC-SR04 powered from 5 V gives a 5 V ECHO signal, which is above the ESP32's
+3.3 V limit. If your module is on 5 V, put a divider (for example 1k and 2k) on
+ECHO. Mention this if asked about protection.

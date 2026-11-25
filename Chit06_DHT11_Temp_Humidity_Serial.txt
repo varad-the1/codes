@@ -1,0 +1,49 @@
+CHIT 6 | DHT11 temperature and humidity (serial monitor)          [ESP32]
+======================================================================
+
+Problem: Interface a DHT11/DHT22 and continuously measure temperature and
+relative humidity; display on the serial monitor.
+Code source: Drive exp 4/Exp 4-a tempterature sens .txt
+
+CONNECTIONS
+-----------
+DHT11 data -> GPIO 4 (the DHT port on the board, as in your note),
+VCC -> 3.3 V, GND -> GND. Use the on-board DHT11 header if available.
+
+STEPS
+-----
+1. Arduino IDE: select the ESP32 board and its COM port; install
+   "DHT sensor library" (Adafruit) and "Adafruit Unified Sensor".
+2. Paste the sketch, Upload.
+3. Open Serial Monitor at 115200. Readings print every 2 s (DHT11 cannot be
+   read faster than about 1 Hz).
+
+CODE
+----
+#include <DHT.h>
+
+#define DHTPIN   4          // DHT11 data pin on GPIO 4
+#define DHTTYPE  DHT11
+
+DHT dht(DHTPIN, DHTTYPE);
+
+void setup() {
+  Serial.begin(115200);
+  dht.begin();
+  Serial.println("ESP32 - DHT11 Temperature and Humidity");
+  Serial.println("---------------------------------------");
+}
+
+void loop() {
+  float temperature = dht.readTemperature();   // Celsius
+  float humidity    = dht.readHumidity();      // % RH
+
+  if (isnan(temperature) || isnan(humidity)) {
+    Serial.println("Failed to read from DHT11 sensor!");
+  } else {
+    Serial.print("Temperature: ");        Serial.print(temperature); Serial.println(" C");
+    Serial.print("Relative Humidity: ");  Serial.print(humidity);    Serial.println(" %");
+    Serial.println("---------------------------");
+  }
+  delay(2000);
+}

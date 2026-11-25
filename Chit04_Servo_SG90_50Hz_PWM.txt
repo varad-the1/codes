@@ -1,0 +1,49 @@
+CHIT 4 | Servo motor (SG90) with 50 Hz PWM                    [STM32F407]
+======================================================================
+
+Problem: Draw the interface to STM32F407, generate 50 Hz PWM for an SG90,
+rotate to 0, 90, 180 degrees holding each 2 s.
+Code source: Drive EXP3/servo basic stm.txt + hehe.txt (Expt 3 servo)
+
+INTERFACING DIAGRAM (draw this)
+-------------------------------
+  SG90 servo                    STM32F407 board
+  Yellow/Orange (signal) -----> PA6  (TIM3_CH1)
+  Red    (VCC)           -----> 3.3 V   (your note: 3.3 V only)
+  Brown  (GND)           -----> GND
+
+CUBEMX SETTINGS
+---------------
+1. Pinout: PA6 = TIM3_CH1.
+2. Timers -> TIM3: Clock source = Internal clock; Channel 1 = PWM Generation CH1.
+3. Parameter settings: Prescaler = 15, Counter period (ARR) = 19999, Pulse = 0.
+4. Clock Configuration: set HSI (16 MHz). Then 16 MHz / 16 = 1 MHz, so
+   20000 counts = 20 ms = 50 Hz.
+5. (Drive version used HSE 168 MHz, APB1 timer clock 84 MHz, Prescaler 83 -
+   also 1 MHz.) Ctrl+S.
+
+CODE
+----
+/* USER CODE BEGIN 2 */
+HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+/* USER CODE END 2 */
+
+while (1)
+{
+    /* USER CODE BEGIN 3 */
+    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 500);    /* 0 deg   (0.5 ms) */
+    HAL_Delay(2000);
+    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 1000);   /* 90 deg  (1.0 ms) */
+    HAL_Delay(2000);
+    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 1500);   /* 180 deg (1.5 ms) */
+    HAL_Delay(2000);
+    /* USER CODE END 3 */
+}
+
+PULSE VALUES NOTE
+-----------------
+500 / 1000 / 1500 are what your Drive file used with the lab servo. A textbook
+SG90 maps 0.5 ms to 0 deg, 1.5 ms to 90 deg and 2.5 ms to 180 deg
+(500 / 1500 / 2500). If the horn does not reach the right angle, try the
+textbook values. Duty = pulse / 20000. The Drive file also keeps
+MX_USB_HOST_Process(); in the loop - leave it if CubeMX generated it.

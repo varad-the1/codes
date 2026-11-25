@@ -1,0 +1,43 @@
+CHIT 1 | LED blink with SWD debugging                         [STM32F407]
+======================================================================
+
+Problem: Blink an LED at a fixed interval; use SWD breakpoints, step through,
+inspect CPU and GPIO registers.
+Code source: hehe.txt (Expt 1 part 1) + Drive exp1/exp1_ps1.txt, exp1_ps2.txt
+
+SETUP (.ioc)
+------------
+1. Pinout: set PD12 = GPIO_Output (PD12 is the on-board LD4 LED).
+   Other on-board LEDs: PD13 LD3, PD14 LD5, PD15 LD6.
+2. Ctrl+S to generate code.
+3. Paste the loop below into USER CODE BEGIN WHILE in main.c.
+
+CODE
+----
+/* main.c - inside int main(void) */
+while (1)
+{
+    HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);    /* LED ON  <- breakpoint 1 */
+    HAL_Delay(500);                                         /* <- breakpoint 2 */
+    HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);  /* LED OFF */
+    HAL_Delay(500);
+}
+
+DEBUG STEPS (from your notes)
+-----------------------------
+1. Build, then run once to confirm the LED blinks. Your notes comment out
+   SystemClock_Config() so the board runs on the 16 MHz HSI.
+2. Double-click the left margin next to the first HAL_GPIO_WritePin to place a
+   breakpoint. A breakpoint makes the program stop at exactly that line.
+3. Add a second breakpoint at the HAL_Delay line.
+4. Start Debug. Press F8 (Resume)/F5 to run to the breakpoint. Use F11 (step
+   into) / F6 (step over) to go line by line.
+5. Open the Registers / Expressions view (top right). Expand GPIOD -> ODR:
+   after the SET line, bit 12 becomes 1 (ODR = 0x1000) and the LED lights;
+   after RESET it returns to 0.
+6. Resume to the next breakpoint and watch the value change again.
+
+VIVA
+----
+SWD uses 2 wires (SWDIO, SWCLK) plus GND/reset; JTAG uses 4+ (TCK, TMS, TDI,
+TDO). A breakpoint halts the CPU so you can read registers and memory.

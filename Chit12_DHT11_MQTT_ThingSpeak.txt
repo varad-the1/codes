@@ -1,0 +1,117 @@
+CHIT 12 | DHT11 -> MQTT -> ThingSpeak dashboard                   [ESP32]
+======================================================================
+
+Problem: Interface a DHT11 with the ESP32 and publish readings to MQTT; create a
+ThingSpeak dashboard plotting temperature and humidity.
+Code source: Drive exp 9/ES EXP 9(MQTT) AND 7(WIFI).pdf + hehe.txt (Expt 9); credentials removed
+
+THINGSPEAK SETUP (from your notes)
+----------------------------------
+1. Sign in to MATLAB / ThingSpeak (IoT analytics). Go to Channels -> New Channel.
+2. Enter a name (e.g. DHT), Field 1 = Temperature, Field 2 = Humidity. Save channel.
+3. Go to Devices -> MQTT -> Add a new device. Name it, select the DHT channel,
+   Add channel, Add device.
+4. Copy the credentials: Client ID, Username, Password. Also copy the Channel ID
+   from My Channels -> DHT.
+5. In the sketch, enter your Wi-Fi SSID/password and paste the MQTT client ID,
+   username, password and channel ID.
+6. Make sure DHT is connected (GPIO 4) and the ESP32 is on Wi-Fi. Compile,
+   upload, open serial monitor at 115200.
+7. Check the result on the website: Channels -> My Channels -> DHT -> graphs of
+   the two fields.
+
+CODE
+----
+#include <WiFi.h>
+#include <PubSubClient.h>
+#include "DHT.h"
+
+// ---------- WIFI ----------
+const char* ssid     = "YOUR_WIFI_SSID";
+const char* password = "YOUR_WIFI_PASSWORD";
+
+// ---------- MQTT (ThingSpeak) ----------
+const char* mqtt_server = "mqtt3.thingspeak.com";
+const int   mqtt_port   = 1883;
+const char* mqtt_topic  = "channels/YOUR_CHANNEL_ID/publish";
+
+const char* mqtt_clientID = "YOUR_MQTT_CLIENT_ID";
+const char* mqtt_username = "YOUR_MQTT_USERNAME";
+const char* mqtt_password = "YOUR_MQTT_PASSWORD";
+
+// ---------- DHT ----------
+#define DHTPIN  4
+#define DHTTYPE DHT11
+
+WiFiClient   espClient;
+PubSubClient client(espClient);
+DHT          dht(DHTPIN, DHTTYPE);
+
+void setupWiFi() {
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi");
+  while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print("."); }
+  Serial.println("\nWiFi connected");
+}
+
+void reconnectMQTT() {
+  while (!client.connected()) {
+    Serial.print("Connecting to MQTT...");
+    if (client.connect(mqtt_clientID, mqtt_username, mqtt_password)) {
+      Serial.println("connected");
+    } else {
+      Serial.print("failed, rc=");
+      Serial.println(client.state());
+      delay(2000);
+    }
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  dht.begin();
+  setupWiFi();
+  client.setServer(mqtt_server, mqtt_port);
+}
+
+void loop() {
+  if (!client.connected()) reconnectMQTT();
+  client.loop();
+
+  float temperature = dht.readTemperature();
+  float humidity    = dht.readHumidity();
+
+  if (isnan(temperature) || isnan(humidity)) {
+    Serial.println("DHT read failed");
+    delay(2000);
+    return;
+  }
+
+  // field1 = temperature, field2 = humidity (same order as the channel)
+  String payload = "field1=" + String(temperature) +
+                   "&field2=" + String(humidity) +
+                   "&status=MQTTPUBLISH";
+
+  Serial.print("Topic: ");   Serial.println(mqtt_topic);
+  Serial.print("Payload: "); Serial.println(payload);
+
+  if (client.publish(mqtt_topic, payload.c_str())) Serial.println("Publish ok");
+  else                                             Serial.println("Publish failed");
+
+  delay(20000);       // ThingSpeak free tier: at least 15 s between updates
+}
+
+CHECK BEFORE THE EXAM
+---------------------
+The Drive sketch published humidity as field1 and temperature as field2; your
+notes define field 1 = temperature, so that order is used here. Both work as
+long as the sketch matches the channel field order. The MQTT credentials in the
+Drive file belonged to another person's channel - create your own channel and
+device and paste yours.
+
+VIVA POINTS
+-----------
+* MQTT = lightweight publish/subscribe protocol over TCP; ESP32 is the
+  publisher, ThingSpeak the broker, the topic is channels/ID/publish.
+* Port 1883 = unencrypted MQTT (8883 = TLS). Client ID + username + password
+  identify the device to the broker.

@@ -1,0 +1,60 @@
+CHIT 3 | Breakpoints: PC, SP, LR and GPIO                     [STM32F407]
+======================================================================
+
+Problem: Place software and hardware breakpoints in the LED and square-wave
+programs and observe PC, SP, LR and GPIO registers while stepping.
+Code source: Generated (based on Drive exp1 code) + hehe.txt (Expt 2 register steps)
+
+CODE
+----
+Put the two functions in USER CODE BEGIN 0 and the loop in USER CODE BEGIN WHILE.
+Using functions makes LR and SP changes visible when you step in.
+
+/* USER CODE BEGIN 0 */
+volatile uint32_t counter = 0;
+
+void LED_On(void)
+{
+    HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
+    counter++;
+}
+void LED_Off(void)
+{
+    HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
+    counter++;
+}
+/* USER CODE END 0 */
+
+while (1)
+{
+    LED_On();            /* BP-A (hardware breakpoint) */
+    HAL_Delay(500);
+    LED_Off();           /* BP-B */
+    HAL_Delay(500);
+}
+/* Optional software breakpoint in code: */   /* __BKPT(0); */
+
+STEPS
+-----
+1. Debug, run to BP-A (the line LED_On();). Note PC (R15) = address of this
+   instruction, SP (R13) = current stack top.
+2. Press F11 to step INTO LED_On. Observe: PC jumps to the function; LR (R14)
+   now holds the return address back in main (odd value = Thumb bit set);
+   SP drops by the stack frame the function pushes.
+3. Step until the SET line runs. Check GPIOD ODR: bit 12 = 1. counter
+   increments in the Variables/Expressions view.
+4. Step out/return: PC goes back to the address that was in LR and SP rises
+   back to its old value.
+5. Repeat at BP-B (LED_Off): ODR bit 12 = 0.
+6. Stack usage for nested calls (your Expt 2 note): put 3 breakpoints at the
+   function results, press F8 each time and write down MSP.
+   Max minus min MSP = stack used.
+
+SOFTWARE vs HARDWARE BREAKPOINT
+-------------------------------
+* Hardware breakpoint: uses the CPU's comparator unit (Cortex-M4 has 6 FPB
+  comparators); works on code in Flash; does not modify the program. CubeIDE
+  places this by default when you double-click the margin.
+* Software breakpoint: an instruction (BKPT) inserted in code, e.g. __BKPT(0)
+  as in your Drive exp1_ps1 file; needs the code to be in writable memory or
+  be compiled in.

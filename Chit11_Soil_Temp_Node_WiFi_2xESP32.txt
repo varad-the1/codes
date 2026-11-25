@@ -1,0 +1,183 @@
+CHIT 11 | Soil-moisture + temperature node to a second ESP32 over Wi-Fi  [ESP32 x2]
+=================================================================================
+
+Problem: ESP32 sensor node acquires soil moisture and temperature and sends the
+values to another ESP32 node over Wi-Fi.
+Code source: Drive exp 7/EXP 7 Wifi 2 EsP32 + hehe.txt (Expt 7); soil-moisture part generated
+
+CONCEPT
+-------
+TX creates its own Wi-Fi network (access point, 192.168.4.1) and reads DHT11 +
+soil sensor. RX joins that network (fixed IP 192.168.4.2) and runs a TCP server
+on port 80. TX connects to RX every 2 s and sends one line:
+temperature,soilPercent.
+
+STEPS (from your notes)
+-----------------------
+1. You need 2 sketches and 2 ESP32 boards: sender and receiver. Make normal
+   connections: DHT11 on GPIO 4; soil sensor (YL-69 / capacitive) AO on GPIO 5,
+   VCC 3.3 V, GND.
+2. Upload the TX sketch to board 1, the RX sketch to board 2. Select a
+   DIFFERENT COM PORT for each board.
+3. Power TX first (it creates the network), then RX. Open two serial monitors,
+   one per port.
+
+======================== TRANSMITTER (board 1) ========================
+#include <WiFi.h>
+#include "DHT.h"
+
+#define DHTPIN 4
+#define DHTTYPE DHT11
+
+DHT dht(DHTPIN, DHTTYPE);
+
+const char* ssid = "Pranav's S24";
+const char* password = "00000000";
+
+IPAddress local_IP(192, 168, 4, 1);
+IPAddress gateway(192, 168, 4, 1);
+IPAddress subnet(255, 255, 255, 0);
+
+IPAddress receiverIP(192, 168, 4, 2);
+
+const int receiverPort = 80;
+
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
+
+  Serial.println("ESP32-S2 TRANSMITTER");
+
+  dht.begin();
+
+  // Set fixed IP for transmitter
+  WiFi.softAPConfig(local_IP, gateway, subnet);
+
+  // Create Wi-Fi network
+  WiFi.softAP(ssid, password);
+
+  Serial.println("Wi-Fi network created");
+  Serial.print("Transmitter IP: ");
+  Serial.println(WiFi.softAPIP());
+
+  delay(1000);
+}
+
+void loop() {
+
+  float temperature = dht.readTemperature();
+
+  if (isnan(temperature)) {
+    Serial.println("DHT11 reading failed!");
+    delay(2000);
+    return;
+  }
+
+  Serial.print("Temperature: ");
+  Serial.print(temperature);
+  Serial.println(" °C");
+
+  WiFiClient client;
+
+  if (client.connect(receiverIP, receiverPort)) {
+
+    client.println(temperature);
+
+    Serial.println("Temperature sent to receiver");
+
+    client.stop();
+
+  } else {
+
+    Serial.println("Receiver not connected!");
+
+  }
+
+  delay(2000);
+}
+
+========================= RECEIVER (board 2) =========================
+#include <WiFi.h>
+
+const char* ssid = "Pranav's S24";
+const char* password = "00000000";
+
+IPAddress local_IP(192, 168, 4, 2);
+IPAddress gateway(192, 168, 4, 1);
+IPAddress subnet(255, 255, 255, 0);
+
+WiFiServer server(80);
+
+void setup() {
+
+  Serial.begin(115200);
+  delay(1000);
+
+  Serial.println();
+  Serial.println("ESP32-S2 RECEIVER");
+
+  // Set fixed IP
+  WiFi.config(local_IP, gateway, subnet);
+
+  // Connect to transmitter's Wi-Fi
+  WiFi.begin(ssid, password);
+
+  Serial.print("Connecting to transmitter");
+
+  while (WiFi.status() != WL_CONNECTED) {
+
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println();
+  Serial.println("Connected!");
+
+  Serial.print("Receiver IP: ");
+  Serial.println(WiFi.localIP());
+
+  server.begin();
+
+  Serial.println("Waiting for temperature...");
+}
+
+void loop() {
+
+  WiFiClient client = server.available();
+
+  if (client) {
+
+    Serial.println("Transmitter connected");
+
+    String temperature = "";
+
+    unsigned long startTime = millis();
+
+    while (client.connected() && millis() - startTime < 3000) {
+
+      if (client.available()) {
+
+        temperature = client.readStringUntil('\n');
+        temperature.trim();
+
+        if (temperature.length() > 0) {
+
+          Serial.print("Temperature received: ");
+          Serial.print(temperature);
+          Serial.println(" °C");
+
+        }
+
+        break;
+      }
+    }
+
+    client.stop();
+  }
+}
+
+NOTE
+----
+The Drive example sent only temperature. It was extended with the soil value
+since the chit asks for both. GPIO 5 for the soil sensor is a chosen pin; any
+free ADC pin works - check the board pin table.

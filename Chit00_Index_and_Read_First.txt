@@ -1,0 +1,45 @@
+ES PRACTICAL - 12 CHITS (End-Sem, ES/2026-27/1-12)
+==================================================
+Chit-wise steps and working code. Prepared 18 Nov 2026 from the Drive folder
+(ES Practical) and hehe.txt.
+
+INDEX
+-----
+Chit | Topic                                         | Board      | Pins / key setting
+-----+-----------------------------------------------+------------+------------------------------------------
+  1  | LED blink + SWD breakpoints                   | STM32F407  | PD12 (LD4), HAL_Delay 500
+  2  | 50% square wave + scope                       | STM32F407  | PD12 -> scope, GND
+  3  | Breakpoints: PC / SP / LR / GPIO              | STM32F407  | PD12, register view
+  4  | Servo SG90, 50 Hz PWM                         | STM32F407  | PA6 = TIM3_CH1, PSC 15 / ARR 19999
+  5  | BLDC via ESC, 1-2 ms ramp                     | STM32F407  | PC6 = TIM3_CH1, PSC 15 / ARR 19999
+  6  | DHT11 temp + humidity, serial                 | ESP32      | GPIO 4 (DHT port)
+  7  | LDR automatic light                           | STM32F407  | PC5 in (LDR), PD12 LED
+  8  | MQ gas sensor + alert                         | ESP32      | GPIO 4 analog, LED GPIO 37
+  9  | BMP280 pressure, serial                       | ESP32      | SDA 8, SCL 9, addr 0x76/0x77
+ 10  | Ultrasonic distance (cm)                      | ESP32      | TRIG 9, ECHO 8
+ 11  | Soil moisture + temp node -> 2nd ESP32 (WiFi) | ESP32 x2   | TX = access point, RX = station
+ 12  | DHT11 -> MQTT -> ThingSpeak                   | ESP32      | GPIO 4, mqtt3.thingspeak.com:1883
+
+READ THIS FIRST
+---------------
+* Chits 1-5 and 7 are STM32F407 (STM32CubeIDE). Chits 6, 8, 9, 10, 11, 12 are
+  ESP32 (Arduino IDE).
+* STM chits that use PWM (4, 5): in the .ioc set clock source to HSI and use
+  prescaler 15 (16 MHz / 16 = 1 MHz, so 1 count = 1 us). The Drive code was
+  written with HSE at 168 MHz and prescaler 83 - both give the same 1 us tick.
+  Pick one and be consistent with the clock config.
+* After editing the .ioc press Ctrl+S to regenerate code, then put your code
+  only between the USER CODE BEGIN / END markers or it is wiped on the next
+  regenerate.
+* Arduino chits: ESP32 serial monitor at 115200. Pick the correct board and a
+  different COM port for each ESP32 when two boards are connected.
+* Libraries (Arduino): DHT sensor library (Adafruit) + Adafruit Unified Sensor,
+  Adafruit BMP280, PubSubClient. Install before the exam; the lab may be offline.
+
+GENERATED OR CHANGED (not straight from Drive)
+----------------------------------------------
+Chit 3 code, the optional ADC version in Chit 7, the soil-moisture node in
+Chit 11 (Drive only had a temperature example), and the cleaned MQTT sketch in
+Chit 12. The Drive MQTT file contained someone's real Wi-Fi password and
+ThingSpeak credentials; they were replaced with placeholders - use your own.
+Nothing here was run on hardware, so test each once before the exam.

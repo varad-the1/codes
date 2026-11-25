@@ -1,0 +1,54 @@
+CHIT 5 | BLDC motor speed control through ESC                 [STM32F407]
+======================================================================
+
+Problem: Draw the interface, vary PWM pulse from 1 ms to 2 ms and back to 1 ms
+through an ESC, observing smooth acceleration/deceleration.
+Code source: Drive 'mahi codes exp 2.docx' (Expt-3 PS2) + hehe.txt (Expt 3 ps2 BLDC)
+
+NEEDS
+-----
+STM32 kit, BLDC motor, DC power supply, ESC, male-to-female wires.
+
+INTERFACING DIAGRAM (draw this)
+-------------------------------
+  ESC signal wires              STM32F407
+  Orange (signal) --------------> PC6 (TIM3_CH1)
+  Brown  (GND)    --------------> GND
+  Red    (VCC)    --------------> VCC per your lab note
+  ESC power leads <-------------- DC power supply (battery side)
+  ESC 3 output wires -----------> BLDC motor (3 phases)
+
+CUBEMX SETTINGS
+---------------
+1. Pinout: PC6 = TIM3_CH1. TIM3 Channel 1 = PWM Generation CH1.
+2. Prescaler = 15, ARR = 19999 (as in your picture note).
+3. Clock Configuration: switch to HSI; confirm 16 MHz so the timer tick is 1 us. Ctrl+S.
+4. Connect the wires with the sticker side up (your note), set the supply
+   current limit, then run.
+
+CODE
+----
+/* USER CODE BEGIN 0 */
+void ESC_SetPulse(uint16_t pulse_us)
+{
+    if (pulse_us < 1000) pulse_us = 1000;
+    if (pulse_us > 2000) pulse_us = 2000;
+    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, pulse_us);   /* 1 count = 1 us */
+}
+/* USER CODE END 0 */
+
+/* USER CODE BEGIN 2 */
+HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+ESC_SetPulse(1000);          /* minimum throttle to arm the ESC */
+HAL_Delay(5000);             /* wait for the arming beeps */
+/* USER CODE END 2 */
+
+while (1)
+{
+    for (uint16_t p = 1000; p <= 2000; p += 10)     /* accelerate: 1 ms -> 2 ms */
+    { ESC_SetPulse(p); HAL_Delay(100); }
+
+    for (int p = 2000; p >= 1000; p -= 10)          /* decelerate: 2 ms -> 1 ms */
+    { ESC_SetPulse((uint16_t)p); HAL_Delay(100); }
+}
+
